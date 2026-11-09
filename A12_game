@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>イケメン学園 - 顎のプリンス</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #fce7f3; /* ピンク背景 */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: radial-gradient(circle at center, #fdf2f8 0%, #fbcfe8 100%);
+            overflow: hidden;
+        }
+
+        /* ゲーム画面（16:9） */
+        #game-screen {
+            position: relative;
+            width: 100%;
+            max-width: 1280px;
+            aspect-ratio: 16 / 9;
+            background-color: #fff;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 背景レイヤー */
+        .bg-layer {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            transition: opacity 0.5s ease;
+        }
+        
+        .bg-school {
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 60%, #F5F5DC 60%, #F5F5DC 100%);
+        }
+        
+        .bg-sparkle {
+            background: radial-gradient(circle, #ff69b4, #ff1493);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+            100% { filter: brightness(1); }
+        }
+
+        /* 立ち絵レイヤー */
+        #character-layer {
+            position: absolute;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 800px;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        .char-show {
+            opacity: 1 !important;
+            transform: translateX(-50%) translateY(0) !important;
+        }
+
+        .char-shake {
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(-50%) rotate(0deg); }
+            25% { transform: translateX(-52%) rotate(-5deg); }
+            50% { transform: translateX(-50%) rotate(0deg); }
+            75% { transform: translateX(-48%) rotate(5deg); }
+            100% { transform: translateX(-50%) rotate(0deg); }
+        }
+
+        /* メッセージウィンドウ */
+        #message-window {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 30%;
+            background: rgba(255, 255, 255, 0.85);
+            border: 4px solid #f472b6;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(244, 114, 182, 0.5);
+            padding: 20px 40px;
+            box-sizing: border-box;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            display: none;
+            cursor: pointer;
+        }
+
+        #speaker-name {
+            position: absolute;
+            top: -25px;
+            left: 20px;
+            background: #f472b6;
+            color: white;
+            padding: 5px 20px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #message-text {
+            font-size: 28px;
+            line-height: 1.6;
+            color: #333;
+            font-family: 'Kosugi Maru', sans-serif;
+            white-space: pre-wrap;
+        }
+
+        /* 選択肢 */
+        #choice-container {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background: rgba(0,0,0,0.4);
+            z-index: 20;
+            display: none;
+        }
+
+        .choice-btn {
+            background: linear-gradient(135deg, #f472b6 0%, #db2777 100%);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 24px;
+            font-weight: bold;
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+            border: 2px solid white;
+            transition: transform 0.1s, filter 0.1s;
+            cursor: pointer;
+        }
+
+        .choice-btn:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+
+        /* タイトル画面 */
+        #title-screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #fbcfe8, #f472b6);
+            z-index: 50;
+        }
+
+        .title-logo {
+            font-size: 60px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 4px 4px 0 #db2777, 8px 8px 15px rgba(0,0,0,0.4);
+            margin-bottom: 40px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .start-btn {
+            background: white;
+            color: #db2777;
+            padding: 20px 60px;
+            border-radius: 50px;
+            font-size: 32px;
+            font-weight: bold;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+            cursor: pointer;
+        }
+        
+        .start-btn:active {
+            transform: translateY(4px);
+        }
+
+        /* SVG用のスタイル */
+        .svg-char {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="game-screen">
+        
+        <!-- 背景 -->
+        <div id="bg-layer" class="bg-layer bg-school"></div>
+
+        <!-- 立ち絵 -->
+        <div id="character-layer">
+            <!-- インラインSVGで「顎が鋭利なイケメン」を描画 -->
+            <svg class="svg-char" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+                <g id="char-ago" style="display: none;">
+                    <!-- 制服（体） -->
+                    <path d="M 50,600 L 100,300 L 300,300 L 350,600 Z" fill="#2c3e50" />
+                    <!-- ネクタイ -->
+                    <polygon points="190,300 210,300 200,450" fill="#e74c3c" />
+                    
+                    <!-- 首 -->
+                    <rect x="180" y="250" width="40" height="60" fill="#ffe0bd" />
+                    
+                    <!-- 異常に尖った顎と顔の輪郭 -->
+                    <polygon points="120,150 280,150 280,250 200,400 120,250" fill="#ffe0bd" />
+                    
+                    <!-- 耳 -->
+                    <circle cx="120" cy="200" r="15" fill="#ffe0bd" />
+                    <circle cx="280" cy="200" r="15" fill="#ffe0bd" />
+
+                    <!-- 目 -->
+                    <g id="eyes-normal">
+                        <!-- 左目 -->
+                        <path d="M 140,180 Q 160,170 180,180" fill="none" stroke="#000" stroke-width="3"/>
+                        <circle cx="160" cy="190" r="10" fill="#3498db" />
+                        <circle cx="165" cy="185" r="3" fill="#fff" />
+                        <!-- 右目 -->
+                        <path d="M 220,180 Q 240,170 260,180" fill="none" stroke="#000" stroke-width="3"/>
+                        <circle cx="240" cy="190" r="10" fill="#3498db" />
+                        <circle cx="245" cy="185" r="3" fill="#fff" />
+                    </g>
+                    <g id="eyes-close" style="display:none;">
+                        <path d="M 140,190 Q 160,200 180,190" fill="none" stroke="#000" stroke-width="4"/>
+                        <path d="M 220,190 Q 240,200 260,190" fill="none" stroke="#000" stroke-width="4"/>
+                    </g>
+
+                    <!-- 鼻 -->
+                    <path d="M 200,190 L 205,220 L 195,220" fill="none" stroke="#d3b89b" stroke-width="2"/>
+
+                    <!-- 口 -->
+                    <path id="mouth-normal" d="M 180,260 Q 200,270 220,260" fill="none" stroke="#e74c3c" stroke-width="3"/>
+                    <path id="mouth-smile" d="M 170,250 Q 200,280 230,250" fill="none" stroke="#e74c3c" stroke-width="4"/>
+
+                    <!-- 髪の毛（ピンク・紫系でカオスな形） -->
+                    <path d="M 100,150 Q 150,20 200,50 Q 250,20 300,150 Q 320,80 280,50 Q 200,-50 120,50 Q 80,80 100,150 Z" fill="#9b59b6" />
+                    <!-- 前髪 -->
+                    <path d="M 120,150 L 160,200 L 180,140 Z" fill="#9b59b6" />
+                    <path d="M 180,140 L 220,210 L 240,140 Z" fill="#9b59b6" />
+                    <path d="M 240,140 L 270,190 L 280,150 Z" fill="#9b59b6" />
+                </g>
+            </svg>
+        </div>
+
+        <!-- メッセージウィンドウ -->
+        <div id="message-window">
+            <div id="speaker-name"></div>
+            <div id="message-text"></div>
+        </div>
+
+        <!-- 選択肢 -->
+        <div id="choice-container"></div>
+
+        <!-- タイトル画面 -->
+        <div id="title-screen">
+            <div class="title-logo">私立イケメン学園<br><span style="font-size:40px; color:#fbcfe8; text-shadow: 2px 2px 0 #db2777;">〜顎のプリンス〜</span></div>
+            <button class="start-btn" onclick="startGame()">はじめる</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- シナリオデータ ---
+    const scenario = {
+        start: [
+            { bg: "bg-school", char: null, name: "", text: "春……。出会いの季節。" },
+            { name: "", text: "私は今日から、この『私立イケメン学園』に転校してきた高校2年生。" },
+            { name: "", text: "「遅刻する遅刻するー！」" },
+            { name: "", text: "パンをくわえながら角を曲がった、その時だった。" },
+            { name: "", text: "ドンッ！！" },
+            { name: "", text: "「きゃっ！」" },
+            { char: "ago_normal", name: "???", text: "「……おっと、危ない。」" },
+            { name: "私", text: "（な、なんて鋭利な……顎！）" },
+            { char: "ago_smile", name: "顎が鋭利な先輩", text: "「大丈夫かい、子猫ちゃん？ 怪我はない？」" },
+            { name: "", text: "彼は優しく手を差し伸べてくれた。\n……その顎で私の肩を突き刺しながら。" },
+            { choices: [
+                { label: "はい、大丈夫です！", target: "route_normal" },
+                { label: "顎が刺さってます！！", target: "route_ago" }
+            ]}
+        ],
+        route_normal: [
+            { char: "ago_normal", name: "私", text: "「は、はい！ 大丈夫です！」" },
+            { char: "ago_smile", name: "顎が鋭利な先輩", text: "「フッ……元気でいいね。俺は3年の『鋭利 刃（えいり じん）』だ。」" },
+            { char: "ago_normal", name: "刃", text: "「次からは気をつけるんだぞ。……俺の顎は、時に人を傷つけるからな」" },
+            { name: "私", text: "（なんてミステリアスな先輩なんだろう……）" },
+            { name: "", text: "こうして、私の波乱に満ちた学園生活が幕を開けたのだった。\n\n【 NORMAL END 】" },
+            { choices: [{ label: "タイトルに戻る", target: "title" }] }
+        ],
+        route_ago: [
+            { char: "ago_close", name: "私", text: "「あの、先輩……顎が、私の肩に深く刺さってるんですけど！」" },
+            { char: "ago_normal", name: "刃", text: "「……フッ。」" },
+            { name: "刃", text: "「気づいてしまったか。この顎の魅力に。」" },
+            { name: "私", text: "「魅力っていうか、物理的に痛いんです！」" },
+            { bg: "bg-sparkle", char: "ago_smile", effect: "shake", name: "刃", text: "「この顎は、選ばれし者にしか刺さらない。\n……つまり、お前は俺の運命の相手ということさ」" },
+            { name: "私", text: "「ええええええ！？」" },
+            { name: "", text: "顎から放たれる謎の光に包まれ、私たちはそのまま宇宙へと飛び立った。" },
+            { name: "", text: "さようなら地球。こんにちは顎。\n\n【 TRUE END: アゴ・レボリューション 】" },
+            { choices: [{ label: "タイトルに戻る", target: "title" }] }
+        ]
+    };
+
+    // --- システム変数 ---
+    let currentScene = [];
+    let currentLine = 0;
+    let isTyping = false;
+    let textTimeout = null;
+
+    // --- DOM要素 ---
+    const bgLayer = document.getElementById('bg-layer');
+    const charLayer = document.getElementById('character-layer');
+    const charAgo = document.getElementById('char-ago');
+    const eyesNormal = document.getElementById('eyes-normal');
+    const eyesClose = document.getElementById('eyes-close');
+    const mouthNormal = document.getElementById('mouth-normal');
+    const mouthSmile = document.getElementById('mouth-smile');
+    
+    const msgWindow = document.getElementById('message-window');
+    const speakerName = document.getElementById('speaker-name');
+    const msgText = document.getElementById('message-text');
+    const choiceContainer = document.getElementById('choice-container');
+    const titleScreen = document.getElementById('title-screen');
+
+    // ゲーム開始
+    function startGame() {
+        titleScreen.style.display = 'none';
+        msgWindow.style.display = 'block';
+        loadScene('start');
+    }
+
+    // タイトルへ戻る
+    function returnToTitle() {
+        titleScreen.style.display = 'flex';
+        msgWindow.style.display = 'none';
+        charLayer.classList.remove('char-show');
+        bgLayer.className = 'bg-layer bg-school';
+    }
+
+    // シーンの読み込み
+    function loadScene(sceneId) {
+        if (sceneId === 'title') {
+            returnToTitle();
+            return;
+        }
+        currentScene = scenario[sceneId];
+        currentLine = 0;
+        playNextLine();
+    }
+
+    // 次の行を再生
+    function playNextLine() {
+        if (currentLine >= currentScene.length) return;
+
+        const line = currentScene[currentLine];
+        
+        // 選択肢がある場合
+        if (line.choices) {
+            showChoices(line.choices);
+            return;
+        }
+
+        // 背景切り替え
+        if (line.bg) {
+            bgLayer.className = 'bg-layer ' + line.bg;
+        }
+
+        // キャラクター表示制御
+        if (line.char === null) {
+            charLayer.classList.remove('char-show');
+        } else if (line.char) {
+            charLayer.classList.add('char-show');
+            charAgo.style.display = 'block';
+            
+            // 表情切り替え
+            eyesNormal.style.display = 'block';
+            eyesClose.style.display = 'none';
+            mouthNormal.style.display = 'block';
+            mouthSmile.style.display = 'none';
+
+            if (line.char === 'ago_smile') {
+                mouthNormal.style.display = 'none';
+                mouthSmile.style.display = 'block';
+            } else if (line.char === 'ago_close') {
+                eyesNormal.style.display = 'none';
+                eyesClose.style.display = 'block';
+            }
+        }
+
+        // エフェクト
+        if (line.effect === 'shake') {
+            charLayer.classList.remove('char-shake');
+            void charLayer.offsetWidth; // リフロー
+            charLayer.classList.add('char-shake');
+        }
+
+        // 名前表示
+        if (line.name) {
+            speakerName.style.display = 'block';
+            speakerName.innerText = line.name;
+        } else {
+            speakerName.style.display = 'none';
+        }
+
+        // テキスト再生
+        typeText(line.text);
+    }
+
+    // テキストの一文字ずつの表示
+    function typeText(text) {
+        isTyping = true;
+        msgText.innerHTML = '';
+        let index = 0;
+
+        function type() {
+            if (index < text.length) {
+                // 改行コードの処理
+                if (text.charAt(index) === '\n') {
+                    msgText.innerHTML += '<br>';
+                } else {
+                    msgText.innerHTML += text.charAt(index);
+                }
+                index++;
+                textTimeout = setTimeout(type, 30); // 表示速度
+            } else {
+                isTyping = false;
+            }
+        }
+        type();
+    }
+
+    // メッセージウィンドウクリック処理
+    msgWindow.addEventListener('click', () => {
+        if (choiceContainer.style.display === 'flex') return;
+
+        if (isTyping) {
+            // タイプ中なら全表示
+            clearTimeout(textTimeout);
+            msgText.innerHTML = currentScene[currentLine].text.replace(/\n/g, '<br>');
+            isTyping = false;
+        } else {
+            // 次の行へ
+            currentLine++;
+            playNextLine();
+        }
+    });
+
+    // 選択肢の表示
+    function showChoices(choices) {
+        choiceContainer.innerHTML = '';
+        choiceContainer.style.display = 'flex';
+        msgWindow.style.display = 'none';
+
+        choices.forEach(choice => {
+            const btn = document.createElement('div');
+            btn.className = 'choice-btn';
+            btn.innerText = choice.label;
+            btn.onclick = () => {
+                choiceContainer.style.display = 'none';
+                msgWindow.style.display = 'block';
+                loadScene(choice.target);
+            };
+            choiceContainer.appendChild(btn);
+        });
+    }
+
+</script>
+</body>
+</html>
