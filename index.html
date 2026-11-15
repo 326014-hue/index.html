@@ -134,6 +134,11 @@
             white-space: pre-wrap;
         }
 
+        .choice-btn:focus-visible, .start-btn:focus-visible, #message-window:focus-visible {
+            outline: 3px solid #7c3aed;
+            outline-offset: 4px;
+        }
+
         /* 選択肢 */
         #choice-container {
             position: absolute;
@@ -276,7 +281,7 @@
         </div>
 
         <!-- メッセージウィンドウ -->
-        <div id="message-window">
+        <div id="message-window" tabindex="0" role="button" aria-label="本文を進める（Enter／Space）" aria-describedby="message-text">
             <div id="speaker-name"></div>
             <div id="message-text"></div>
         </div>
@@ -367,6 +372,7 @@
         msgWindow.style.display = 'none';
         charLayer.classList.remove('char-show');
         bgLayer.className = 'bg-layer bg-school';
+        titleScreen.querySelector('.start-btn').focus({ preventScroll: true });
     }
 
     // シーンの読み込み
@@ -436,6 +442,7 @@
 
         // テキスト再生
         typeText(line.text);
+        msgWindow.focus({ preventScroll: true });
     }
 
     // テキストの一文字ずつの表示
@@ -461,8 +468,8 @@
         type();
     }
 
-    // メッセージウィンドウクリック処理
-    msgWindow.addEventListener('click', () => {
+    // クリックとキーボードで同じ本文送りを使う
+    function advanceMessage() {
         if (choiceContainer.style.display === 'flex') return;
 
         if (isTyping) {
@@ -475,6 +482,14 @@
             currentLine++;
             playNextLine();
         }
+    }
+
+    msgWindow.addEventListener('click', advanceMessage);
+    msgWindow.addEventListener('keydown', (event) => {
+        if (event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        if (!event.repeat) advanceMessage();
     });
 
     // 選択肢の表示
@@ -484,7 +499,8 @@
         msgWindow.style.display = 'none';
 
         choices.forEach(choice => {
-            const btn = document.createElement('div');
+            const btn = document.createElement('button');
+            btn.type = 'button';
             btn.className = 'choice-btn';
             btn.innerText = choice.label;
             btn.onclick = () => {
@@ -494,6 +510,7 @@
             };
             choiceContainer.appendChild(btn);
         });
+        choiceContainer.querySelector('button')?.focus({ preventScroll: true });
     }
 
 </script>
